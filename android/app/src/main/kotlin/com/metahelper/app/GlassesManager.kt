@@ -51,8 +51,7 @@ class GlassesManager(
                         startSession()
                     }
                     is RegistrationState.Available -> {
-                        Log.d("GlassesManager", "App is UNREGISTERED. Opening Meta AI...")
-                        Wearables.startRegistration(context)
+                        Log.d("GlassesManager", "App is Available. Waiting for registration flow...")
                     }
                     else -> Log.d("GlassesManager", "Registration state: $state")
                 }
