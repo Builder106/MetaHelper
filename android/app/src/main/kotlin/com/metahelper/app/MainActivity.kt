@@ -1,29 +1,32 @@
 package com.metahelper.app
 
+import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.metahelper.app.ui.theme.MetaHelperTheme
-
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.graphics.vector.ImageVector
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.metahelper.app.ui.theme.MetaHelperTheme
 
 class MainActivity : ComponentActivity() {
     private var glassesManager by mutableStateOf<GlassesManager?>(null)
@@ -89,7 +92,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startWearableService() {
-        // Start and bind the foreground service
         val intent = Intent(this, WearableService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -117,8 +119,6 @@ fun LoadingScreen() {
 
 @Composable
 fun MainScreen(manager: GlassesManager) {
-    // We can observe state from the manager if we expose it
-    // For now, let's build the UI structure
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -126,7 +126,6 @@ fun MainScreen(manager: GlassesManager) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Header Area
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 imageVector = Icons.Default.Bluetooth,
@@ -148,7 +147,6 @@ fun MainScreen(manager: GlassesManager) {
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Status Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -162,7 +160,7 @@ fun MainScreen(manager: GlassesManager) {
                 Text(
                     text = "HARDWARE READY",
                     style = MaterialTheme.typography.labelLarge,
-                    color = Color(0xFF4CAF50) // Success Green
+                    color = Color(0xFF4CAF50)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -173,7 +171,6 @@ fun MainScreen(manager: GlassesManager) {
             }
         }
 
-        // Action Button (Alternative to glasses button)
         Button(
             onClick = { manager.triggerPhotoCapture() },
             modifier = Modifier
@@ -186,7 +183,6 @@ fun MainScreen(manager: GlassesManager) {
             Text("Capture Manually", style = MaterialTheme.typography.titleMedium)
         }
 
-        // Replay Button
         OutlinedButton(
             onClick = { manager.replayLastAudio() },
             modifier = Modifier
