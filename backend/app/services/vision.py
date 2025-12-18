@@ -5,7 +5,7 @@ import io
 class VisionService:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
 
     def get_description(self, image_bytes: bytes) -> str:
         image = PIL.Image.open(io.BytesIO(image_bytes))

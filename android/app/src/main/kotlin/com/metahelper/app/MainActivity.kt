@@ -17,8 +17,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Initialize the manager (Change 10.0.2.2 to your local IP if testing on real device)
-        glassesManager = GlassesManager(this, "http://10.0.2.2:8000")
+        // Initialize the manager (Using your local IP for real device testing)
+        glassesManager = GlassesManager(this, "http://172.21.100.50:8000")
 
         setContent {
             MetaHelperTheme {

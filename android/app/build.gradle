@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.metahelper.app"
-        minSdk 26
+        minSdk 29
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -60,8 +60,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.11.0'
 
     // Meta Wearables SDK (DAT)
-    implementation 'com.meta.wearable:mwdat-core:0.2.1'
-    implementation 'com.meta.wearable:mwdat-camera:0.2.1'
+    implementation 'com.meta.wearable:mwdat-core:0.3.0'
+    implementation 'com.meta.wearable:mwdat-camera:0.3.0'
     
     // Testing
     testImplementation 'junit:junit:4.13.2'
