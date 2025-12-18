@@ -1,11 +1,12 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id "org.jetbrains.kotlin.plugin.compose" version "2.1.0" // Use Compose Gradle Plugin
 }
 
 android {
     namespace 'com.metahelper.app'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.metahelper.app"

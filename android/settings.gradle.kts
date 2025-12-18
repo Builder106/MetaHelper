@@ -22,10 +22,18 @@ dependencyResolutionManagement {
         maven {
             url = uri("https://maven.pkg.github.com/facebook/meta-wearables-dat-android")
             credentials {
-                username = "" // not needed
-                password = localProperties.getProperty("github_token")
+                username = "unused" // GitHub packages requires a non-empty username, but doesn't care what it is
+                val token = localProperties.getProperty("github_token")
                            ?: providers.gradleProperty("github_token").orNull 
                            ?: System.getenv("GITHUB_TOKEN")
+                
+                if (token == null || token.isEmpty()) {
+                    println("ERROR: github_token NOT FOUND in local.properties")
+                } else {
+                    // This will print to your Sync/Build log in Android Studio
+                    println("SUCCESS: github_token loaded (Starts with: ${token.take(4)}...)")
+                }
+                password = token
             }
         }
     }

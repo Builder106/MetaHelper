@@ -1,12 +1,17 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    ext.kotlin_version = "1.9.0"
+    ext.kotlin_version = "2.1.0"
     repositories {
         google()
         mavenCentral()
+        gradlePluginPortal() // Gradle Plugin Portal for Compose Plugin
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
+}
+
+plugins {
+    id "org.jetbrains.kotlin.plugin.compose" version "2.1.0" // Use Compose Gradle Plugin
 }
