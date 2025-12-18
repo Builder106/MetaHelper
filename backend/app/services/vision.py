@@ -1,14 +1,14 @@
-import google.generativeai as genai
-import PIL.Image
+from google import genai
+from PIL import Image
 import io
 
 class VisionService:
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.client = genai.Client(api_key=api_key)
+        self.model_id = 'gemini-2.5-flash'
 
     def get_description(self, image_bytes: bytes) -> str:
-        image = PIL.Image.open(io.BytesIO(image_bytes))
+        image = Image.open(io.BytesIO(image_bytes))
         prompt = """You are an AI assistant helping a student with a Discrete Mathematics practice exam.
         Identify the math question in this image and provide a comprehensive, step-by-step solution.
         
@@ -21,6 +21,9 @@ class VisionService:
         
         Structure your response so the student can easily follow along and transcribe the logic onto their answer sheet. End with the final answer clearly stated.
         """
-        response = self.model.generate_content([prompt, image])
+        response = self.client.models.generate_content(
+            model=self.model_id,
+            contents=[prompt, image]
+        )
         return response.text
 

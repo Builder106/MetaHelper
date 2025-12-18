@@ -28,6 +28,7 @@ import android.content.ServiceConnection
 import android.os.Build
 import android.os.IBinder
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -179,7 +180,7 @@ fun MainScreen(manager: GlassesManager) {
                 .height(56.dp),
             shape = CircleShape
         ) {
-            Icon(Icons.Default.Replay, contentDescription = null)
+            Icon(Icons.Default.Refresh, contentDescription = null)
             Spacer(modifier = Modifier.width(12.dp))
             Text("Replay Last Answer", style = MaterialTheme.typography.titleMedium)
         }

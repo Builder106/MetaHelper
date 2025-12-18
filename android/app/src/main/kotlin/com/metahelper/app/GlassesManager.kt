@@ -3,18 +3,17 @@ package com.metahelper.app
 import android.content.Context
 import android.util.Log
 import com.meta.wearable.dat.core.Wearables
+import com.meta.wearable.dat.core.types.RegistrationState
+import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
 import com.meta.wearable.dat.camera.StreamSession
 import com.meta.wearable.dat.camera.startStreamSession
 import com.meta.wearable.dat.camera.types.PhotoData
-import com.meta.wearable.dat.camera.WearableCamera
-import com.meta.wearable.dat.core.types.RegistrationState
 import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
 
 /**
  * Manager class that coordinates the flow between the glasses and the backend.
- * Updated for Meta Wearables SDK 0.3.0 using the StreamSession API.
+ * Fully aligned with Meta Wearables SDK 0.3.0 Documentation.
  */
 class GlassesManager(
     private val context: Context,
@@ -22,6 +21,7 @@ class GlassesManager(
 ) {
     private val apiClient = ApiClient(backendUrl)
     private val audioPlayer = AudioPlayer(context).apply {
+        // Double-tap shortcut for repeating the last explanation
         onReplayRequested = { replayLastAudio() }
     }
     private val volumeController = VolumeController(context)
@@ -31,26 +31,27 @@ class GlassesManager(
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
     init {
+        // Initialize SDK as per com_meta_wearable_dat_core_wearables#initialize
         val result = Wearables.initialize(context)
         if (result.isSuccess) {
             Log.d("GlassesManager", "Meta Wearables SDK 0.3.0 Initialized")
             checkRegistrationAndStart()
         } else {
-            Log.e("GlassesManager", "SDK Initialization failed: ${result.exceptionOrNull()?.message}")
+            Log.e("GlassesManager", "SDK Initialization failed")
         }
     }
 
     private fun checkRegistrationAndStart() {
         serviceScope.launch {
-            // Check if the app is already registered with the Meta AI app
+            // Observe registrationState StateFlow
             Wearables.registrationState.collect { state ->
                 when (state) {
-                    RegistrationState.REGISTERED -> {
+                    is RegistrationState.Registered -> {
                         Log.d("GlassesManager", "App is REGISTERED. Starting session...")
                         startSession()
                     }
-                    RegistrationState.UNREGISTERED -> {
-                        Log.d("GlassesManager", "App is UNREGISTERED. Opening Meta AI for registration...")
+                    is RegistrationState.Available -> {
+                        Log.d("GlassesManager", "App is UNREGISTERED. Opening Meta AI...")
                         Wearables.startRegistration(context)
                     }
                     else -> Log.d("GlassesManager", "Registration state: $state")
@@ -60,84 +61,58 @@ class GlassesManager(
     }
 
     private fun startSession() {
-        Log.d("GlassesManager", "Initializing session with AutoDeviceSelector...")
-        val deviceSelector = com.meta.wearable.dat.core.selectors.AutoDeviceSelector { _, _ -> 0 }
+        Log.d("GlassesManager", "Initializing session...")
+        
+        // Use AutoDeviceSelector as per com_meta_wearable_dat_core_selectors_autodeviceselector
+        val deviceSelector = AutoDeviceSelector { _, _ -> 0 }
+        
+        // Start session using the extension function in com.meta.wearable.dat.camera
         streamSession = Wearables.startStreamSession(context, deviceSelector)
 
         serviceScope.launch {
             streamSession?.state?.collect { state ->
-                Log.d("GlassesManager", "Session state changed to: $state")
-                // When we transition to STREAMING, we should also register for 
-                // hardware button events specifically.
-                if (state.toString().contains("STREAMING")) {
-                    setupHardwareButtonListener()
-                }
+                Log.d("GlassesManager", "StreamSession state: $state")
             }
         }
     }
 
-    private fun setupHardwareButtonListener() {
-        // In 0.3.0, you can get the camera from the session to listen for button events
-        // This bypasses the Meta AI gallery import
-        try {
-            val deviceId = Wearables.devices.value.firstOrNull() ?: return
-            val camera = WearableCamera.getInstance(deviceId)
-            
-            // v0.3.0 correct signature: onPhotoCaptured (replaces onImageCaptured)
-            camera.registerCaptureListener(object : WearableCamera.CaptureListener {
-                override fun onPhotoCaptured(imageBuffer: ByteBuffer) {
-                    val bytes = ByteArray(imageBuffer.remaining())
-                    imageBuffer.get(bytes)
-                    Log.d("GlassesManager", "INSTANT CAPTURE from button. Processing...")
-                    onPhotoCaptured(bytes)
-                }
-            })
-        } catch (e: Exception) {
-            Log.e("GlassesManager", "Failed to setup hardware button listener: ${e.message}")
-        }
-    }
-
-    private fun convertBitmapToByteArray(bitmap: android.graphics.Bitmap): ByteArray {
-        val outputStream = ByteArrayOutputStream()
-        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, outputStream)
-        return outputStream.toByteArray()
-    }
-
     /**
-     * Trigger a photo capture using the StreamSession.capturePhoto suspend function.
+     * Trigger a photo capture using the StreamSession API.
+     * This captures the POV image from the glasses.
      */
     fun triggerPhotoCapture() {
         val session = streamSession ?: run {
-            Log.e("GlassesManager", "StreamSession not initialized.")
+            Log.e("GlassesManager", "Session not active.")
             return
         }
 
         serviceScope.launch {
-            Log.d("GlassesManager", "Capturing photo via StreamSession...")
-            // 0.3.0 Guideline: capturePhoto is a suspend function returning Result<PhotoData>
+            Log.d("GlassesManager", "Capturing photo...")
+            // As per StreamSession interface: capturePhoto() returns Result<PhotoData>
             val result = session.capturePhoto()
-
+            
             if (result.isSuccess) {
                 val photoData = result.getOrThrow()
-                when (photoData) {
-                    is PhotoData.HEIC -> {
-                        val bytes = photoData.data.array() // Extract HEIC data as ByteArray
-                        Log.d("GlassesManager", "Photo captured in HEIC format (${bytes.size} bytes). Processing...")
-                        onPhotoCaptured(bytes)
-                    }
-                    is PhotoData.Bitmap -> {
-                        val bitmap = photoData.bitmap // Extract Android Bitmap
-                        Log.d("GlassesManager", "Photo captured as Bitmap (${bitmap.width}x${bitmap.height}). Processing...")
-                        val bytes = convertBitmapToByteArray(bitmap) // Convert bitmap to ByteArray
-                        onPhotoCaptured(bytes)
-                    }
-                    else -> {
-                        Log.e("GlassesManager", "Unsupported PhotoData format: ${photoData.javaClass.name}")
-                    }
-                }
+                processPhotoData(photoData)
             } else {
                 Log.e("GlassesManager", "Capture failed: ${result.exceptionOrNull()?.message}")
             }
+        }
+    }
+
+    private fun processPhotoData(photoData: PhotoData) {
+        when (photoData) {
+            is PhotoData.HEIC -> {
+                Log.d("GlassesManager", "Processing HEIC photo")
+                onPhotoCaptured(photoData.data.array())
+            }
+            is PhotoData.Bitmap -> {
+                Log.d("GlassesManager", "Processing Bitmap photo")
+                val outputStream = ByteArrayOutputStream()
+                photoData.bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, outputStream)
+                onPhotoCaptured(outputStream.toByteArray())
+            }
+            else -> Log.e("GlassesManager", "Unknown PhotoData type")
         }
     }
 
@@ -146,7 +121,7 @@ class GlassesManager(
         apiClient.processImage(imageBytes, object : ApiClient.ApiResponseCallback {
             override fun onSuccess(audioBytes: ByteArray) {
                 lastAudioResponse = audioBytes
-                Log.d("GlassesManager", "Playing AI response...")
+                Log.d("GlassesManager", "AI Solution ready. Playing...")
                 audioPlayer.playAudio(audioBytes)
             }
             override fun onError(message: String) {
@@ -157,14 +132,14 @@ class GlassesManager(
 
     fun replayLastAudio() {
         lastAudioResponse?.let {
-            Log.d("GlassesManager", "Replaying last audio response...")
+            Log.d("GlassesManager", "Replaying last explanation...")
             audioPlayer.playAudio(it)
-        } ?: Log.w("GlassesManager", "No audio to replay")
+        }
     }
 
     fun stopAll() {
         audioPlayer.release()
-        streamSession?.close()
+        streamSession?.close() // As per StreamSession interface
         serviceScope.cancel()
     }
 }

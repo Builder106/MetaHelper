@@ -14,15 +14,19 @@ def vision_service():
 def tts_service():
     return TTSService()
 
-def test_vision_service_generate_description(vision_service):
+def test_vision_service_generate_description():
     # Mock PIL.Image.open to avoid UnidentifiedImageError
     with patch("PIL.Image.open") as mock_open:
         mock_image = MagicMock()
         mock_open.return_value = mock_image
         
-        with patch("google.generativeai.GenerativeModel.generate_content") as mock_gen:
-            mock_gen.return_value.text = "I see a person wearing glasses."
-            description = vision_service.get_description(b"fake_image_bytes")
+        with patch("app.services.vision.genai.Client") as mock_client_class:
+            mock_client = mock_client_class.return_value
+            mock_client.models.generate_content.return_value.text = "I see a person wearing glasses."
+            
+            # Instantiate service INSIDE the patch
+            service = VisionService(api_key="mock_key")
+            description = service.get_description(b"fake_image_bytes")
             assert description == "I see a person wearing glasses."
 
 def test_audio_amplitude_scaling():
