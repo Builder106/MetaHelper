@@ -11,9 +11,12 @@ import com.meta.wearable.dat.camera.types.PhotoData
 import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
 
+import android.net.Uri
+import java.io.InputStream
+
 /**
  * Manager class that coordinates the flow between the glasses and the backend.
- * Fully aligned with Meta Wearables SDK 0.3.0 Documentation.
+ * Now updated to support Gallery Watcher trigger.
  */
 class GlassesManager(
     private val context: Context,
@@ -21,7 +24,6 @@ class GlassesManager(
 ) {
     private val apiClient = ApiClient(backendUrl)
     private val audioPlayer = AudioPlayer(context).apply {
-        // Double-tap shortcut for repeating the last explanation
         onReplayRequested = { replayLastAudio() }
     }
     private val volumeController = VolumeController(context)
@@ -30,48 +32,87 @@ class GlassesManager(
     private var streamSession: StreamSession? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
+    private var lastProcessedUri: Uri? = null
+
+    private val galleryWatcher = GalleryWatcher(context) { uri ->
+        if (uri != lastProcessedUri) {
+            lastProcessedUri = uri
+            Log.d("GlassesManager", "Processing new gallery image: $uri")
+            processGalleryImage(uri)
+        }
+    }
+
+    var onStatusUpdate: ((String) -> Unit)? = null
+
     init {
-        // Initialize SDK as per com_meta_wearable_dat_core_wearables#initialize
+        updateStatus("Initializing SDK...")
         val result = Wearables.initialize(context)
         if (result.isSuccess) {
             Log.d("GlassesManager", "Meta Wearables SDK 0.3.0 Initialized")
+            updateStatus("SDK Initialized. Monitoring gallery for new photos...")
             checkRegistrationAndStart()
+            galleryWatcher.startWatching()
         } else {
-            Log.e("GlassesManager", "SDK Initialization failed")
+            val error = result.exceptionOrNull()?.message ?: "Unknown Error"
+            Log.e("GlassesManager", "SDK Initialization failed: $error")
+            updateStatus("SDK Error: $error")
+        }
+    }
+
+    private fun processGalleryImage(uri: Uri) {
+        updateStatus("New photo detected! Solving...")
+        try {
+            val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+            val bytes = inputStream?.readBytes()
+            if (bytes != null) {
+                onPhotoCaptured(bytes)
+            } else {
+                updateStatus("Error: Could not read photo data.")
+            }
+        } catch (e: Exception) {
+            Log.e("GlassesManager", "Gallery process error: ${e.message}")
+            updateStatus("Error reading photo: ${e.message}")
+        }
+    }
+
+    private fun updateStatus(msg: String) {
+        Log.d("GlassesManager", "STATUS: $msg")
+        serviceScope.launch(Dispatchers.Main) {
+            onStatusUpdate?.invoke(msg)
         }
     }
 
     private fun checkRegistrationAndStart() {
         serviceScope.launch {
-            // Observe registrationState StateFlow
             Wearables.registrationState.collect { state ->
                 when (state) {
                     is RegistrationState.Registered -> {
-                        Log.d("GlassesManager", "App is REGISTERED. Starting session...")
+                        updateStatus("App Registered. Starting session...")
                         startSession()
                     }
                     is RegistrationState.Available -> {
-                        Log.d("GlassesManager", "App is Available. Waiting for registration flow...")
+                        updateStatus("ACTION REQUIRED: In Meta AI app, go to Settings -> App Access -> Enable 'POV Access' for MetaHelper")
+                        Wearables.startRegistration(context)
                     }
-                    else -> Log.d("GlassesManager", "Registration state: $state")
+                    else -> updateStatus("Registration state: ${state.javaClass.simpleName}")
                 }
             }
         }
     }
 
     private fun startSession() {
-        Log.d("GlassesManager", "Initializing session...")
-        
-        // Use AutoDeviceSelector as per com_meta_wearable_dat_core_selectors_autodeviceselector
+        updateStatus("Searching for glasses...")
         val deviceSelector = AutoDeviceSelector { _, _ -> 0 }
         
-        // Start session using the extension function in com.meta.wearable.dat.camera
-        streamSession = Wearables.startStreamSession(context, deviceSelector)
-
-        serviceScope.launch {
-            streamSession?.state?.collect { state ->
-                Log.d("GlassesManager", "StreamSession state: $state")
+        try {
+            streamSession = Wearables.startStreamSession(context, deviceSelector)
+            serviceScope.launch {
+                streamSession?.state?.collect { state ->
+                    updateStatus("Stream state: ${state.javaClass.simpleName}")
+                }
             }
+        } catch (e: Exception) {
+            updateStatus("Session Error: ${e.message}")
         }
     }
 
@@ -139,6 +180,7 @@ class GlassesManager(
     fun stopAll() {
         audioPlayer.release()
         streamSession?.close() // As per StreamSession interface
+        galleryWatcher.stopWatching()
         serviceScope.cancel()
     }
 }

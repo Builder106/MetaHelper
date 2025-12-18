@@ -31,35 +31,62 @@ import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.types.Permission
 import com.meta.wearable.dat.core.types.PermissionStatus
 
+import android.widget.Toast
+
 class MainActivity : ComponentActivity() {
     private var glassesManager by mutableStateOf<GlassesManager?>(null)
+    private var statusMessage by mutableStateOf("Initializing...")
     private var isBound = false
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions.all { it.value }) {
+            statusMessage = "Permissions granted. Requesting Meta access..."
             requestMetaPermissions()
+        } else {
+            statusMessage = "Android permissions denied."
         }
     }
 
     private val metaPermissionLauncher = registerForActivityResult(
         Wearables.RequestPermissionContract()
-    ) { status ->
-        // Use the documentation provided: PermissionStatus is a sealed interface
-        // with Granted and Denied as members.
-        if (status is PermissionStatus.Granted) {
-            startWearableService()
+    ) { result ->
+        Log.d("MainActivity", "Meta Permission Result: $result")
+        
+        // Unwrap the result using the pattern found in GlassesManager.kt
+        if (result.isSuccess) {
+            val status = result.getOrThrow()
+            if (status is PermissionStatus.Granted) {
+                statusMessage = "Meta Permission Granted! Starting Service..."
+                Toast.makeText(this, "Meta Permission Granted!", Toast.LENGTH_SHORT).show()
+                startWearableService()
+            } else {
+                statusMessage = "Meta Permission Denied: $status"
+                Log.e("MainActivity", "Meta permission denied: $status")
+                Toast.makeText(this, "Permission Denied: $status", Toast.LENGTH_LONG).show()
+            }
         } else {
-            Log.e("MainActivity", "Meta permission denied: $status")
+            val error = result.exceptionOrNull()?.message ?: "Unknown Error"
+            statusMessage = "Meta SDK Error: $error"
+            Log.e("MainActivity", "Meta SDK Error: $error")
+            Toast.makeText(this, "Meta SDK Error: $error", Toast.LENGTH_LONG).show()
         }
     }
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            Log.d("MainActivity", "Service Connected - updating glassesManager")
             val binder = service as WearableService.LocalBinder
-            glassesManager = binder.getService().glassesManager
+            val manager = binder.getService().glassesManager
+            
+            manager.onStatusUpdate = { msg -> 
+                statusMessage = msg 
+            }
+            
+            glassesManager = manager
             isBound = true
+            Toast.makeText(this@MainActivity, "Service Bound!", Toast.LENGTH_SHORT).show()
         }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
@@ -79,7 +106,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    glassesManager?.let { MainScreen(it) } ?: LoadingScreen()
+                    glassesManager?.let { MainScreen(it) } ?: LoadingScreen(statusMessage)
                 }
             }
         }
@@ -93,6 +120,9 @@ class MainActivity : ComponentActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
 
         val missingPermissions = permissions.filter {
@@ -132,9 +162,20 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoadingScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+fun LoadingScreen(status: String) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
         CircularProgressIndicator()
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = status,
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
     }
 }
 
@@ -179,13 +220,13 @@ fun MainScreen(manager: GlassesManager) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "HARDWARE READY",
+                    text = "GALLERY WATCHER ACTIVE",
                     style = MaterialTheme.typography.labelLarge,
                     color = Color(0xFF4CAF50)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Press the physical button on your glasses to solve a practice question.",
+                    text = "1. Take a photo with your glasses.\n2. Meta AI will save it to 'Downloads/Meta AI'.\n3. MetaHelper will detect it and play the answer!",
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium
                 )

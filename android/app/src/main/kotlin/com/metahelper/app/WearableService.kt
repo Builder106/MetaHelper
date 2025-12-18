@@ -20,11 +20,22 @@ class WearableService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("WearableService", "Service created")
-        // NOTE: Default points to Render. For local testing, use "http://10.0.2.2:8000"
-        glassesManager = GlassesManager(this, "https://metahelper.onrender.com")
+        Log.d("WearableService", "Service onCreate - starting foreground IMMEDIATELY")
+        
         createNotificationChannel()
-        startForeground(1, createNotification())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                1, 
+                createNotification(), 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            )
+        } else {
+            startForeground(1, createNotification())
+        }
+
+        Log.d("WearableService", "Initializing GlassesManager...")
+        glassesManager = GlassesManager(this, "https://metahelper.onrender.com")
+        Log.d("WearableService", "Service fully initialized")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
