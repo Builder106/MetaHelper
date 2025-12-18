@@ -58,6 +58,10 @@ dependencies {
     
     // Networking
     implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+
+    // Meta Wearables SDK (DAT)
+    implementation 'com.meta.wearable:mwdat-core:0.2.1'
+    implementation 'com.meta.wearable:mwdat-camera:0.2.1'
     
     // Testing
     testImplementation 'junit:junit:4.13.2'

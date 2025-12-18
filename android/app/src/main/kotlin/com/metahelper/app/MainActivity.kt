@@ -27,10 +27,8 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen(onTestCapture = {
-                        // Simulate a photo capture with a dummy byte array
-                        // In reality, this would be the actual image from the glasses
-                        val dummyImage = ByteArray(100) 
-                        glassesManager.onPhotoCaptured(dummyImage)
+                        // Now triggers an actual photo capture from the glasses camera
+                        glassesManager.triggerPhotoCapture()
                     })
                 }
             }
