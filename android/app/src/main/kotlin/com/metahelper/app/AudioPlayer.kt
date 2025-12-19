@@ -44,23 +44,26 @@ class AudioPlayer(private val context: Context) {
         Log.d("AudioPlayer", "Attempting to play ${audioBytes.size} bytes of audio")
         try {
             stop()
-            val tempFile = File.createTempFile("response", "mp3", context.cacheDir)
-            Log.d("AudioPlayer", "Created temp file: ${tempFile.absolutePath}")
-            tempFile.deleteOnExit()
-            val fos = FileOutputStream(tempFile)
+            
+            // Use a fixed filename to ensure we overwrite and never fill up the cache
+            val responseFile = File(context.cacheDir, "latest_answer.mp3")
+            if (responseFile.exists()) {
+                responseFile.delete()
+            }
+            
+            val fos = FileOutputStream(responseFile)
             fos.write(audioBytes)
             fos.close()
-            Log.d("AudioPlayer", "Audio data written to temp file")
+            Log.d("AudioPlayer", "Audio data written to: ${responseFile.absolutePath}")
 
             mediaPlayer = MediaPlayer().apply {
-                setDataSource(tempFile.absolutePath)
+                setDataSource(responseFile.absolutePath)
                 Log.d("AudioPlayer", "DataSource set. Preparing...")
                 prepare()
                 Log.d("AudioPlayer", "Player prepared. Starting playback...")
                 setOnCompletionListener {
                     Log.d("AudioPlayer", "Playback completed naturally")
                     onComplete()
-                    tempFile.delete()
                     stop()
                 }
                 start()
