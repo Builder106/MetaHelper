@@ -30,6 +30,7 @@ import com.metahelper.app.ui.theme.MetaHelperTheme
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.types.Permission
 import com.meta.wearable.dat.core.types.PermissionStatus
+import com.meta.wearable.dat.core.types.RegistrationState
 
 import android.widget.Toast
 
@@ -138,17 +139,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkMetaPermissions() {
-        // Initialize Wearables if not already initialized to check permission status
+        // Initialize Wearables if not already initialized
         Wearables.initialize(this)
         
-        val status = Wearables.permissionStatus(Permission.CAMERA)
-        Log.d("MainActivity", "Current Meta Camera Permission Status: $status")
+        // If the glasses are already registered, we don't need to ask for permissions again
+        val state = Wearables.registrationState.value
+        Log.d("MainActivity", "Current Meta Registration State: $state")
         
-        if (status is PermissionStatus.Granted) {
-            Log.d("MainActivity", "Meta Permission already granted. Starting service directly.")
+        if (state is RegistrationState.Registered) {
+            Log.d("MainActivity", "Meta Registration already active. Starting service directly.")
             startWearableService()
         } else {
-            Log.d("MainActivity", "Meta Permission not granted ($status). Requesting...")
+            Log.d("MainActivity", "Meta Registration not active ($state). Requesting access...")
             requestMetaPermissions()
         }
     }
