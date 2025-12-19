@@ -32,6 +32,8 @@ async def process_image(file: UploadFile = File(...)):
         
         # 2. Get Description from Gemini
         description = vision_service.get_description(image_bytes)
+        if not description:
+            description = "I'm sorry, I couldn't generate a description for this image. Please try taking a clearer photo."
         
         # 3. Convert to Speech
         audio_content = await tts_service.text_to_speech(description)

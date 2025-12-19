@@ -1,7 +1,7 @@
 fastapi==0.115.0
 uvicorn==0.31.0
 google-genai
-edge-tts==6.1.15
+edge-tts
 pydub==0.25.1
 python-multipart==0.0.12
 python-dotenv==1.0.1
