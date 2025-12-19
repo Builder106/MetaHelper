@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.types.RegistrationState
+import com.meta.wearable.dat.camera.types.PhotoData
 import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
 import android.net.Uri

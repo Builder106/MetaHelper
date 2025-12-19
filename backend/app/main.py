@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import Response
 import os
+import traceback
 from dotenv import load_dotenv
 from app.services.vision import VisionService
 from app.services.tts import TTSService
@@ -43,4 +44,6 @@ async def process_image(file: UploadFile = File(...)):
         return Response(content=quiet_audio, media_type="audio/mpeg")
         
     except Exception as e:
+        print(f"ERROR DURING PROCESSING: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

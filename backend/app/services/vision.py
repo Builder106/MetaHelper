@@ -8,6 +8,7 @@ class VisionService:
         self.model_id = 'gemini-3-pro-preview'
 
     def get_description(self, image_bytes: bytes) -> str:
+        print(f"Calling Gemini with model: {self.model_id}")
         image = Image.open(io.BytesIO(image_bytes))
         prompt = """You are an AI assistant helping a student with a Computer Science practice exam, specifically focusing on C programming.
         Identify the coding question in this image and provide a comprehensive solution.
