@@ -131,15 +131,30 @@ class MainActivity : ComponentActivity() {
         }
 
         if (missingPermissions.isEmpty()) {
-            requestMetaPermissions()
+            checkMetaPermissions()
         } else {
             requestPermissionLauncher.launch(missingPermissions.toTypedArray())
         }
     }
 
+    private fun checkMetaPermissions() {
+        // Initialize Wearables if not already initialized to check permission status
+        Wearables.initialize(this)
+        
+        val status = Wearables.permissionStatus(Permission.CAMERA)
+        Log.d("MainActivity", "Current Meta Camera Permission Status: $status")
+        
+        if (status is PermissionStatus.Granted) {
+            Log.d("MainActivity", "Meta Permission already granted. Starting service directly.")
+            startWearableService()
+        } else {
+            Log.d("MainActivity", "Meta Permission not granted ($status). Requesting...")
+            requestMetaPermissions()
+        }
+    }
+
     private fun requestMetaPermissions() {
         // Request CAMERA permission through the Meta SDK
-        // The contract expects a single Permission object, not an array
         metaPermissionLauncher.launch(Permission.CAMERA)
     }
 
