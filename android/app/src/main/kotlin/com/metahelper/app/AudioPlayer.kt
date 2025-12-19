@@ -3,6 +3,7 @@ package com.metahelper.app
 import android.content.Context
 import android.media.MediaPlayer
 import android.media.session.MediaSession
+import android.os.Build
 import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
@@ -20,7 +21,13 @@ class AudioPlayer(private val context: Context) {
         mediaSession = MediaSession(context, "MetaHelperAudio").apply {
             setCallback(object : MediaSession.Callback() {
                 override fun onMediaButtonEvent(mediaButtonIntent: android.content.Intent): Boolean {
-                    val keyEvent = mediaButtonIntent.getParcelableExtra<android.view.KeyEvent>(android.content.Intent.EXTRA_KEY_EVENT)
+                    val keyEvent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        mediaButtonIntent.getParcelableExtra(android.content.Intent.EXTRA_KEY_EVENT, android.view.KeyEvent::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        mediaButtonIntent.getParcelableExtra(android.content.Intent.EXTRA_KEY_EVENT)
+                    }
+                    
                     if (keyEvent?.action == android.view.KeyEvent.ACTION_DOWN) {
                         if (keyEvent.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT) {
                             Log.d("AudioPlayer", "Double tap detected on glasses! Replay requested.")

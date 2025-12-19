@@ -4,13 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.types.RegistrationState
-import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
-import com.meta.wearable.dat.camera.StreamSession
-import com.meta.wearable.dat.camera.startStreamSession
-import com.meta.wearable.dat.camera.types.PhotoData
 import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
-
 import android.net.Uri
 import android.widget.Toast
 import java.io.InputStream
@@ -30,11 +25,10 @@ class GlassesManager(
     private val volumeController = VolumeController(context)
     private var lastAudioResponse: ByteArray? = null
     
-    private var streamSession: StreamSession? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
     private var pendingAudioResponse: ByteArray? = null
-    private var isStreaming = false
+    private var isGlassesConnected = false
 
     private var lastProcessedUri: Uri? = null
 
@@ -174,7 +168,6 @@ class GlassesManager(
 
     fun stopAll() {
         audioPlayer.release()
-        streamSession?.close() // As per StreamSession interface
         galleryWatcher.stopWatching()
         serviceScope.cancel()
     }
