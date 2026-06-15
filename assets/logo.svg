@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="MetaHelper logo">
+  <title>MetaHelper</title>
+  <defs>
+    <linearGradient id="mh-accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- rounded app-tile backdrop -->
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#0B0F1A"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="14.5" fill="none" stroke="#6366F1" stroke-opacity="0.35" stroke-width="1"/>
+
+  <!-- glasses: two rounded lenses joined by a bridge -->
+  <g fill="none" stroke="url(#mh-accent)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- left lens -->
+    <rect x="8.5" y="22" width="20" height="20" rx="7"/>
+    <!-- right lens -->
+    <rect x="35.5" y="22" width="20" height="20" rx="7"/>
+    <!-- bridge -->
+    <path d="M28.5 30 Q32 27 35.5 30"/>
+    <!-- temple stubs -->
+    <path d="M8.5 30 L3.5 27.5"/>
+    <path d="M55.5 30 L60.5 27.5"/>
+  </g>
+
+  <!-- code glyph inside the lenses: </>  -->
+  <g fill="none" stroke="#E0E7FF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- left chevron in left lens -->
+    <path d="M21 28 L15.5 32 L21 36"/>
+    <!-- right chevron in right lens -->
+    <path d="M43 28 L48.5 32 L43 36"/>
+  </g>
+  <!-- slash bridging the bridge -->
+  <path d="M35 26 L29 38" fill="none" stroke="#A5B4FC" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

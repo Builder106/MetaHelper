@@ -47,7 +47,9 @@ coverage.xml
 *.py,cover
 .stats
 .pytest_cache/
-pytest.ini
+# Only ignore a root-level local pytest.ini; backend/pytest.ini is real project
+# config (sets pythonpath/testpaths) and must be tracked so CI can run the suite.
+/pytest.ini
 
 # Flask stuff:
 instance/

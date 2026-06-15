@@ -1,0 +1,37 @@
+# JOURNAL — MetaHelper
+
+> Dated log of decisions, pivots, incidents, and quotes. Add entries as
+> things happen — retrospectives need this raw material to land.
+> Reverse-chronological; one paragraph max per entry.
+
+## 2026-06-14 — Repo baseline + reframed as a programming assistant #milestone #decision
+
+Scaffolded the standard repo baseline in one pass: added `LICENSE` (MIT), a rewritten `README.md`, `CONTRIBUTING.md`, this `JOURNAL.md`, and a CI workflow at `.github/workflows/ci.yml`. Restored the missing Gradle wrapper (`android/gradlew`, now present and executable) so the Android module builds from a clean checkout. The biggest content decision was reframing the docs: the old README described MetaHelper as a generic "describe my surroundings" tool, but the code tells a different story — the Gemini Vision prompt is tuned to read and solve programming problems (C-focused). Everything now frames the product as "look at a coding problem through Meta Ray-Ban glasses, take a photo, hear the explanation." Asset paths were standardized (`assets/banner-{dark,light}.svg`, `assets/logo.svg`) so README references resolve.
+
+## 2026-06-13 — Test collection repair after ~4 months dormant #incident
+
+Came back to the repo after roughly four months of dormancy (last real work was Dec 2025; an April `wip: local edits` commit aside) and the test suites were broken (commit `7e63509`). `pytest.ini` sets `python_classes=Test*`, so the bare `from fastapi.testclient import TestClient` import in `backend/tests/test_main.py` was being *collected as a test class* and erroring on its `__init__` — the kind of bug that only surfaces when you wire up CI. Fixed by aliasing the import. Also added the Compose runtime to `testImplementation` in `android/app/build.gradle` so `MainActivityStateTest` could resolve `androidx.compose.runtime.*`, which had only ever been an `implementation` dep.
+
+## 2025-12-19 — Vision prompt drift settles on C programming #pivot
+
+The product identity got decided by the prompt, not a spec. Across the sprint the Gemini Vision prompt drifted from "describe this image" to Discrete Mathematics, and finally (commit `61790d5`) to "Computer Science with an emphasis on C programming," adding dual-layer audio guidelines so code gets both transcribed and explained aloud. This is the commit that quietly turned MetaHelper from a vision toy into a programming assistant. Same day, TTS got hardened (`83a0b4d`): `edge-tts` version pinning removed, empty-text guarded, and fallback voices added so a single voice outage doesn't kill the response.
+
+## 2025-12-19 — Permission/registration logic never fully converges #incident
+
+Closed out the sprint still fighting the Meta SDK's registration model. The last two commits (`f2c11df`, `87b2a7a`) reworked `MainActivity.checkMetaPermissions` to gate the wearable service on *registration state* rather than raw camera-permission status — the third or fourth rethink of the same flow. `MainActivity` and `GlassesManager` each took ~15 commits over the sprint and the permission path still never cleanly converged: the `com.meta.wearable.mwdat.APPLICATION_ID` metadata in `AndroidManifest.xml` is still hardcoded to `"0"`, a placeholder a real registered Meta app would replace. Worth flagging loudly for any future on-device testing — without a real APPLICATION_ID the SDK registration can't complete.
+
+## 2025-12-18 — PIVOT: drop SDK StreamSession for a gallery-polling workaround #pivot
+
+The core architecture pivot. Direct camera capture via the Meta Wearables SDK `StreamSession` API was built and wired into `GlassesManager` (`541dfe0`, "implementing StreamSession API for improved photo capture"), then abandoned the same day. The replacement (`2b3ed3c`) is `GalleryWatcher` — a `MediaStore` `ContentObserver` that watches for new glasses photos landing in the phone gallery, reads the bytes, and POSTs them to the backend. By `89c5e19` the full StreamSession initiation was torn out ("remove full StreamSession initiation and audio cue handling"), and `04b25d0` swept the last unused StreamSession references the next day. The gallery-polling path is hacky but it actually fires; direct SDK capture remains the intended future approach, not the shipping one.
+
+## 2025-12-18 — Meta Wearables SDK integration + GitHub Packages auth #decision
+
+Pulled the Meta Wearables SDK (`com.meta.wearable:mwdat-core` / `mwdat-camera` 0.3.0) into the Android build. The SDK only resolves from GitHub Packages (`maven.pkg.github.com/facebook/meta-wearables-dat-android`), which needs a token with `read:packages` scope — so `settings.gradle.kts` reads a `github_token` from `local.properties` (or `GITHUB_TOKEN`), with error handling added when the token is missing (`541dfe0`). Hardcoded credentials were stripped out earlier in the day (`742924c`, `59f7c15`) once it was clear they'd otherwise leak into git. The toolchain also leveled up here: Kotlin 2.1.0, AGP/compileSdk 36, minSdk bumped to 29, Compose Gradle Plugin integrated.
+
+## 2025-12-18 — Backend pinned to Python 3.13 and Render production URL #decision
+
+Wired the Android client to the deployed backend rather than localhost: `GlassesManager` initialization switched to the production endpoint (`218c34f`), and the backend `Dockerfile` was upgraded to Python 3.13 with the uvicorn host corrected for container networking. This is the commit that made the round trip real — Android `ApiClient` multipart POST to `/process-image` on the live Render service, MP3 back. The Gemini model also churned here (2.5-flash at one point) before later settling; the backend pipeline (vision → tts → audio gain) was stable enough by now to point a real device at it.
+
+## 2025-12-17 — Backend pipeline built first: image → Gemini → TTS → audio #milestone
+
+The project started backend-first. The initial commit (`23e360c`) was a bare FastAPI health endpoint and Dockerfile; within the day the real pipeline landed (`6d809d7`): `vision.py` (Gemini) reads the image, `tts.py` synthesizes speech, `audio.py` applies a pydub gain pass, and `POST /process-image` returns `audio/mpeg` bytes. Tests for the Vision and Audio services came in alongside (`ee740b1`). Building the explanation pipeline before touching the glasses was the right call — it let the hard AI/audio work get proven against plain HTTP before the Meta SDK's complexity (registration, packages auth, capture) entered the picture.
