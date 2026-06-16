@@ -45,6 +45,12 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+    testOptions {
+        // Let plain JVM unit tests call android.util.Log etc. (return 0/null
+        // instead of throwing "not mocked"), so we can test pure logic without
+        // pulling in Robolectric.
+        unitTests.returnDefaultValues = true
+    }
 }
 
 dependencies {

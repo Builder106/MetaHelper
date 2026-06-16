@@ -67,9 +67,7 @@ class GalleryWatcher(
                     Log.d("GalleryWatcher", "Checking most recent image: $path")
                     
                     // Most Meta images are saved in a folder named "Meta" or start with "Meta_"
-                    val isMetaImage = path.contains("Meta", ignoreCase = true) || 
-                                     path.contains("Ray-Ban", ignoreCase = true) ||
-                                     path.contains("Pano", ignoreCase = true)
+                    val isMetaImage = isMetaImagePath(path)
                     
                     if (isMetaImage) {
                         Log.d("GalleryWatcher", "MATCH! Meta image detected: $path")
@@ -88,4 +86,16 @@ class GalleryWatcher(
         }
     }
 }
+
+/**
+ * True if a gallery image path looks like a Meta Ray-Ban capture. Pure string
+ * logic extracted from [GalleryWatcher] so it can be unit-tested without
+ * MediaStore. NOTE: this substring match is intentionally broad and currently
+ * over-matches (e.g. any "Pano" panorama, or any path containing "meta"); the
+ * unit tests pin that contract so a future tightening is a deliberate change.
+ */
+fun isMetaImagePath(path: String): Boolean =
+    path.contains("Meta", ignoreCase = true) ||
+    path.contains("Ray-Ban", ignoreCase = true) ||
+    path.contains("Pano", ignoreCase = true)
 
