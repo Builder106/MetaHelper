@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -249,18 +248,6 @@ fun MainScreen(manager: GlassesManager) {
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-        }
-
-        Button(
-            onClick = { manager.triggerPhotoCapture() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp),
-            shape = CircleShape
-        ) {
-            Icon(Icons.Default.CameraAlt, contentDescription = null)
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("Capture Manually", style = MaterialTheme.typography.titleMedium)
         }
 
         OutlinedButton(

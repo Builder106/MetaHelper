@@ -4,9 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.types.RegistrationState
-import com.meta.wearable.dat.camera.types.PhotoData
 import kotlinx.coroutines.*
-import java.io.ByteArrayOutputStream
 import android.net.Uri
 import android.widget.Toast
 import java.io.InputStream
@@ -95,7 +93,8 @@ class GlassesManager(
     }
 
     private fun checkRegistrationAndStart() {
-        // No longer starting a full StreamSession to avoid "Experience Started" sounds
+        // Capture is driven by GalleryWatcher, not an SDK StreamSession (which
+        // plays an "Experience Started" cue), so we only monitor connection state.
         monitorConnectionState()
     }
 
@@ -112,30 +111,6 @@ class GlassesManager(
                     pendingAudioResponse = null
                 }
             }
-        }
-    }
-
-    private fun startSession() {
-        // Function removed to prevent audio cues
-    }
-
-    fun triggerPhotoCapture() {
-        updateStatus("Manual capture disabled in Gallery Mode.")
-    }
-
-    private fun processPhotoData(photoData: PhotoData) {
-        when (photoData) {
-            is PhotoData.HEIC -> {
-                Log.d("GlassesManager", "Processing HEIC photo")
-                onPhotoCaptured(photoData.data.array())
-            }
-            is PhotoData.Bitmap -> {
-                Log.d("GlassesManager", "Processing Bitmap photo")
-                val outputStream = ByteArrayOutputStream()
-                photoData.bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, outputStream)
-                onPhotoCaptured(outputStream.toByteArray())
-            }
-            else -> Log.e("GlassesManager", "Unknown PhotoData type")
         }
     }
 
