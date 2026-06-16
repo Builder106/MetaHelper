@@ -1,6 +1,6 @@
 # Contributing to MetaHelper
 
-MetaHelper is an AI programming assistant for Meta Ray-Ban glasses: you look at a coding problem through your glasses, take a photo, and MetaHelper reads the problem and speaks back an explanation/solution.
+MetaHelper is an audio-first programming assistant for Meta Ray-Ban glasses: you look at code on a screen, whiteboard, or page, take a photo, and MetaHelper reads it back verbatim and explains it aloud — built with blind and low-vision developers in mind.
 
 Thanks for your interest in contributing. This guide covers how to set up both halves of the project, how to build and test them, the guardrails to keep in mind, and how to get a change merged.
 
@@ -111,7 +111,7 @@ Photo capture currently works through `GalleryWatcher`, a `MediaStore` `ContentO
 Please respect these project-specific constraints:
 
 - **Keep secrets out of git.** `android/local.properties` holds the `github_token` and `backend/.env` holds `GOOGLE_API_KEY`; both are gitignored and must stay that way. Never paste tokens or API keys into source files, tests, commit messages, or PR descriptions. If a secret is ever committed, treat it as compromised and rotate it.
-- **The Gemini prompt is intentionally programming-focused.** The prompt in `backend/app/services/vision.py` is tuned to read and solve programming problems (currently C-focused), including the dual-layer "read it verbatim, then explain it" audio format. Do not relax it into a generic "describe my surroundings" prompt. Prompt changes are fine, but keep MetaHelper a programming assistant.
+- **The Gemini prompt is intentionally code-focused.** The prompt in `backend/app/services/vision.py` is tuned to read and explain code and technical content aloud (any language), including the dual-layer "read it verbatim, then explain it" audio format. Do not relax it into a generic "describe my surroundings" prompt. Prompt changes are fine, but keep MetaHelper a code assistant, not a general scene describer.
 - **The GalleryWatcher capture path is a known workaround.** Don't delete it in favor of the SDK `StreamSession` path until that path is actually working end-to-end. Document the real behavior, not the aspirational one.
 - **Keep audio TTS-friendly.** Backend output is read aloud by TTS, so avoid LaTeX, markdown, or notation that doesn't speak well — favor plain spoken English.
 
@@ -135,7 +135,7 @@ Please respect these project-specific constraints:
 To keep the project focused, the following changes will generally be declined unless discussed in an issue first:
 
 - **Adding unrelated AI providers.** MetaHelper uses Gemini for vision and edge-tts for speech. Don't swap in or bolt on additional LLM/vision/TTS providers without prior agreement.
-- **Broadening beyond the programming-assistant scope.** General object recognition, scene description, translation, OCR-for-anything, or other "look at the world" features are out of scope. The product is "see a coding problem → hear the explanation."
+- **Broadening beyond the programming-assistant scope.** General object recognition, scene description, translation, OCR-for-anything, or other "look at the world" features are out of scope. The product is "read and explain code aloud."
 - **Removing the GalleryWatcher path** before the SDK `StreamSession` direct-capture path is proven to work.
 - **Committing secrets, build artifacts, or generated files** (APKs, `.env`, `local.properties`, `__pycache__/`, `build/`).
 
