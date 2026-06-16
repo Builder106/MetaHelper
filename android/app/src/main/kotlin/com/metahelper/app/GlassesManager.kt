@@ -86,6 +86,14 @@ class GlassesManager(
         }
     }
 
+    // OkHttp callbacks fire on a background thread; Toast must run on the main
+    // thread or it throws (no Looper). Always post via the main dispatcher.
+    private fun toast(msg: String, long: Boolean = false) {
+        serviceScope.launch(Dispatchers.Main) {
+            Toast.makeText(context, msg, if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun checkRegistrationAndStart() {
         // No longer starting a full StreamSession to avoid "Experience Started" sounds
         monitorConnectionState()
@@ -100,7 +108,7 @@ class GlassesManager(
                 
                 if (isGlassesConnected && pendingAudioResponse != null) {
                     Log.d("GlassesManager", "Glasses detected. Playing pending answer...")
-                    audioPlayer.playAudio(pendingAudioResponse!!)
+                    audioPlayer.playAudio(pendingAudioResponse!!) { volumeController.restoreVolume() }
                     pendingAudioResponse = null
                 }
             }
@@ -133,7 +141,7 @@ class GlassesManager(
 
     private fun onPhotoCaptured(imageBytes: ByteArray) {
         Log.d("GlassesManager", "onPhotoCaptured called with ${imageBytes.size} bytes")
-        Toast.makeText(context, "Sending photo to AI...", Toast.LENGTH_SHORT).show()
+        toast("Sending photo to AI...")
         volumeController.setQuietVolume()
         
         Log.d("GlassesManager", "Calling apiClient.processImage")
@@ -141,11 +149,11 @@ class GlassesManager(
             override fun onSuccess(audioBytes: ByteArray) {
                 Log.d("GlassesManager", "apiClient success: received ${audioBytes.size} bytes")
                 lastAudioResponse = audioBytes
-                Toast.makeText(context, "AI Answer Ready!", Toast.LENGTH_SHORT).show()
-                
+                toast("AI Answer Ready!")
+
                 if (isGlassesConnected) {
                     Log.d("GlassesManager", "Glasses ARE connected. Playing audio immediately.")
-                    audioPlayer.playAudio(audioBytes)
+                    audioPlayer.playAudio(audioBytes) { volumeController.restoreVolume() }
                 } else {
                     Log.d("GlassesManager", "Glasses NOT connected. Saving to pending.")
                     pendingAudioResponse = audioBytes
@@ -154,7 +162,8 @@ class GlassesManager(
             }
             override fun onError(message: String) {
                 Log.e("GlassesManager", "apiClient error: $message")
-                Toast.makeText(context, "AI Error: $message", Toast.LENGTH_LONG).show()
+                toast("AI Error: $message", long = true)
+                volumeController.restoreVolume()
                 updateStatus("AI Error: $message")
             }
         })

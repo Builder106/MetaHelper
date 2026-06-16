@@ -4,11 +4,20 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 import android.util.Log
 
 class ApiClient(private val baseUrl: String) {
-    private val client = OkHttpClient()
+    // Render free-tier instances cold-start (~30-60s) and then Gemini + TTS add
+    // more latency, well past OkHttp's ~10s defaults. Use generous timeouts and
+    // let OkHttp retry a dropped connection while the instance spins up.
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
 
     interface ApiResponseCallback {
         fun onSuccess(audioBytes: ByteArray)

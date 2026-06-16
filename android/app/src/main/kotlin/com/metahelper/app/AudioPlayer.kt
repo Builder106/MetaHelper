@@ -65,17 +65,27 @@ class AudioPlayer(private val context: Context) {
 
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(responseFile.absolutePath)
-                Log.d("AudioPlayer", "DataSource set. Preparing...")
-                prepare()
-                Log.d("AudioPlayer", "Player prepared. Starting playback...")
+                // prepareAsync + a prepared listener avoids blocking the calling
+                // thread (prepare() on the main thread is an ANR risk).
+                setOnPreparedListener {
+                    Log.d("AudioPlayer", "Player prepared. Starting playback...")
+                    it.start()
+                }
                 setOnCompletionListener {
                     Log.d("AudioPlayer", "Playback completed naturally")
                     onComplete()
                     stop()
                 }
-                start()
+                setOnErrorListener { _, what, extra ->
+                    Log.e("AudioPlayer", "MediaPlayer error: what=$what extra=$extra")
+                    onComplete()
+                    stop()
+                    true
+                }
+                Log.d("AudioPlayer", "DataSource set. Preparing asynchronously...")
+                prepareAsync()
             }
-            Log.d("AudioPlayer", "MediaPlayer.start() called successfully")
+            Log.d("AudioPlayer", "MediaPlayer.prepareAsync() called")
         } catch (e: Exception) {
             val errorMsg = "Error playing audio: ${e.message}"
             Log.e("AudioPlayer", errorMsg)
