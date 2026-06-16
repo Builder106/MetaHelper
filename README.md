@@ -14,7 +14,7 @@
 
 MetaHelper reads code, error messages, and technical text aloud through your Meta Ray-Ban glasses — an audio-first way to access code that isn't already digital text on your device. Look at code on a screen, whiteboard, projector, or printed page and take a photo; MetaHelper reads it back **verbatim** (so you can follow or transcribe it) and explains what it does in plain English, via Gemini Vision — not a generic "describe my surroundings" caption. It's aimed at developers and CS students who are blind or have low vision, and anyone who needs hands-free, audio access to code in the world around them.
 
-> **Status:** the vision prompt is currently tuned for C programming; generalizing it to any language is the next step toward the accessibility-first goal above. **Demo:** coming soon.
+> **Status:** the assistant reads and explains code in any language (plus error output and diagrams), not just C; not yet validated end-to-end on real glasses. **Demo:** coming soon.
 
 ## How it works
 
