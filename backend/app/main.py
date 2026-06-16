@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import Response
+import asyncio
 import os
 import traceback
 from dotenv import load_dotenv
@@ -30,17 +31,17 @@ async def process_image(file: UploadFile = File(...)):
         # 1. Read Image
         image_bytes = await file.read()
         
-        # 2. Get Description from Gemini
-        description = vision_service.get_description(image_bytes)
+        # 2. Get Description from Gemini (blocking HTTP call — run off the event loop)
+        description = await asyncio.to_thread(vision_service.get_description, image_bytes)
         if not description:
             description = "I'm sorry, I couldn't generate a description for this image. Please try taking a clearer photo."
-        
+
         # 3. Convert to Speech
         audio_content = await tts_service.text_to_speech(description)
-        
-        # 4. Scale Amplitude (Quiet Mode)
+
+        # 4. Scale Amplitude (Quiet Mode) — pydub/ffmpeg is blocking, run off the loop
         multiplier = float(os.getenv("AUDIO_AMPLITUDE_MULTIPLIER", "0.1"))
-        quiet_audio = audio_processor.scale_amplitude(audio_content, multiplier=multiplier)
+        quiet_audio = await asyncio.to_thread(audio_processor.scale_amplitude, audio_content, multiplier=multiplier)
         
         # 5. Return Audio File
         return Response(content=quiet_audio, media_type="audio/mpeg")
@@ -48,4 +49,5 @@ async def process_image(file: UploadFile = File(...)):
     except Exception as e:
         print(f"ERROR DURING PROCESSING: {str(e)}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        # Keep the internal exception in the logs; don't leak it to the client.
+        raise HTTPException(status_code=500, detail="Failed to process the image. Please try again.")

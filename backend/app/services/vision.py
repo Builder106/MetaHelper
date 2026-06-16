@@ -18,7 +18,11 @@ class VisionService:
                 "VisionService is not configured: set GOOGLE_API_KEY in the environment."
             )
         print(f"Calling Gemini with model: {self.model_id}")
-        image = Image.open(io.BytesIO(image_bytes))
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+        except Exception as e:
+            print(f"Could not open image: {e}")
+            return "I couldn't read that image. Please retake the photo and try again."
         prompt = """You are an AI assistant helping a student with a Computer Science practice exam, specifically focusing on C programming.
         Identify the coding question in this image and provide a comprehensive solution.
         
@@ -41,9 +45,19 @@ class VisionService:
         
         Structure your response so the student can easily follow along and transcribe both the syntax and the logic.
         """
-        response = self.client.models.generate_content(
-            model=self.model_id,
-            contents=[prompt, image]
-        )
-        return response.text
+        try:
+            response = self.client.models.generate_content(
+                model=self.model_id,
+                contents=[prompt, image]
+            )
+        except Exception as e:
+            print(f"Gemini request failed: {e}")
+            return "I had trouble analyzing that image. Please try again in a moment."
+
+        text = getattr(response, "text", None)
+        if not text:
+            # Empty text usually means a safety block or an unparseable response.
+            print("Gemini returned no usable text (possible safety block).")
+            return "I couldn't generate an answer for that image. Please retake the photo with the full question in view."
+        return text
 
