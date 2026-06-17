@@ -88,7 +88,24 @@ def test_audio_amplitude_scaling():
     # Load back to compare dBFS
     scaled_audio = AudioSegment.from_file(io.BytesIO(scaled_bytes))
     
-    # The dBFS should be lower. 
+    # The dBFS should be lower.
     # For a 0.1 multiplier, the change should be approx -20dB
     assert scaled_audio.dBFS < tone.dBFS
     assert abs((tone.dBFS - scaled_audio.dBFS) - 20) < 2 # Allow small codec margin
+
+
+def test_strip_markdown_for_speech():
+    from app.services.tts import strip_markdown_for_speech
+
+    # Backticks / fences / headings / bullets / links removed
+    assert strip_markdown_for_speech("Use `result` here") == "Use result here"
+    assert strip_markdown_for_speech("[LeetCode](https://leetcode.com)") == "LeetCode"
+    out = strip_markdown_for_speech("## Title\n- one\n* two")
+    assert "Title" in out and "one" in out and "two" in out
+    assert "- one" not in out and "* two" not in out and "#" not in out
+    fenced = strip_markdown_for_speech("```python\nx = 1\n```")
+    assert "x = 1" in fenced and "`" not in fenced
+
+    # Code content is preserved (not mangled as markdown emphasis)
+    assert "x**2" in strip_markdown_for_speech("compute x**2 now")
+    assert "__init__" in strip_markdown_for_speech("the __init__ method")
