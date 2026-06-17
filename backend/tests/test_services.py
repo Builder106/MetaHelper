@@ -39,9 +39,10 @@ def test_vision_service_unreadable_image_returns_guidance():
 
 
 def test_vision_service_generate_content_error_returns_guidance():
-    # generate_content raises -> get_description returns the "had trouble
-    # analyzing" guidance string.
-    with patch("PIL.Image.open") as mock_open:
+    # generate_content always raises a transient (503) error -> get_description
+    # retries + falls back, then returns the "had trouble analyzing" guidance.
+    # Patch time.sleep so the backoff retries don't actually wait.
+    with patch("PIL.Image.open") as mock_open, patch("app.services.vision.time.sleep"):
         mock_open.return_value = MagicMock()
 
         with patch("app.services.vision.genai.Client") as mock_client_class:

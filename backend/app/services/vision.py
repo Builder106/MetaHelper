@@ -2,6 +2,7 @@ from google import genai
 from PIL import Image
 import io
 import os
+import time
 
 class VisionService:
     def __init__(self, api_key: str):
@@ -51,19 +52,40 @@ class VisionService:
         - Keep it tight — favor clarity over completeness; the listener can ask for a re-read.
         - Don't comment on image quality unless it is actually unreadable.
         """
-        try:
-            response = self.client.models.generate_content(
-                model=self.model_id,
-                contents=[prompt, image]
-            )
-        except Exception as e:
-            print(f"Gemini request failed: {e}")
-            return "I had trouble analyzing that image. Please try again in a moment."
+        # Try the configured model, then a stable fallback, retrying transient
+        # errors (503 high-demand, 429, 500) with backoff. Newer flash models in
+        # particular return sporadic 503s under load, which previously surfaced
+        # as an instant "I had trouble analyzing that image" with no retry.
+        models_to_try = [self.model_id]
+        if "gemini-2.5-flash-lite" not in models_to_try:
+            models_to_try.append("gemini-2.5-flash-lite")
 
-        text = getattr(response, "text", None)
-        if not text:
-            # Empty text usually means a safety block or an unparseable response.
-            print("Gemini returned no usable text (possible safety block).")
-            return "I couldn't generate an answer for that image. Please retake the photo with the full question in view."
-        return text
+        last_error = None
+        for model in models_to_try:
+            for attempt in range(3):
+                try:
+                    response = self.client.models.generate_content(
+                        model=model, contents=[prompt, image]
+                    )
+                    text = getattr(response, "text", None)
+                    if text:
+                        return text
+                    # Empty text usually means a safety block; another model
+                    # would block the same content, so don't bother falling back.
+                    print(f"{model}: empty response (possible safety block).")
+                    return "I couldn't generate an answer for that image. Please retake the photo with the full question in view."
+                except Exception as e:
+                    last_error = e
+                    transient = any(s in str(e) for s in (
+                        "503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED",
+                        "500", "high demand", "overloaded",
+                    ))
+                    print(f"Gemini {model} attempt {attempt + 1} failed (transient={transient}): {e}")
+                    if transient and attempt < 2:
+                        time.sleep(1.5 * (attempt + 1))  # 1.5s, then 3s
+                        continue
+                    break  # non-transient, or out of attempts -> try next model
+
+        print(f"Gemini request failed after retries: {last_error}")
+        return "I had trouble analyzing that image. Please try again in a moment."
 
